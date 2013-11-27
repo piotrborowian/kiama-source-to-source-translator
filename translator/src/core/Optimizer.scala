@@ -35,11 +35,11 @@ trait Optimizer extends Attributes {
      
     def mulToShift : Any ==> Option[Any] = {
       
-      case Mul(Shl(x, n), Num(y)) if isPowerOf2(y)
-        => mulToShift(Mul(Shl(x, n+1), Num(y/2))) //2: keep incrementing shifts until we reach the base case 
+      case Mul(Shl(x, Num(n)), Num(y)) if isPowerOf2(y)
+        => mulToShift(Mul(Shl(x, Num(n+1)), Num(y/2))) //2: keep incrementing shifts until we reach the base case 
         
 	  case Mul(x, Num(y)) if isPowerOf2(y)
-	    => mulToShift(Mul(Shl(x, 1), Num(y/2)))  //1: generate first shift
+	    => mulToShift(Mul(Shl(x, Num(1)), Num(y/2)))  //1: generate first shift
 	  
 	  case Mul(Num(x), y) => mulToShift(Mul(y, Num(x)))  //reverse the arguments
 	  

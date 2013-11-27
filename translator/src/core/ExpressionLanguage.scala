@@ -9,8 +9,9 @@ import org.kiama.attribution.Attribution._
 import org.kiama.output.PrettyPrinter
 
 
-object ExpressionLanguageInterpreter extends Parser with Attributes with Optimizer with PrettyPrinter {
-  val marginSize = 40 
+object ExpressionLanguageInterpreter extends Parser with Attributes with Optimizer with ELPrettyPrinter {
+  val marginSize = 45
+  val useCustomPrettyPrinter = true
   
   case class Runtime(program : Program) {
   	//holds the runtime values of variables
@@ -25,7 +26,7 @@ object ExpressionLanguageInterpreter extends Parser with Attributes with Optimiz
 		case Mul(a, b) 	 => eval(a) * eval(b)
 		case Add(a, b)   => eval(a) + eval(b)
 		case Neg(a)    	 => -eval(a)
-		case Shl(a, b) 	 => eval(a) << b
+		case Shl(a, b) 	 => eval(a) << eval(b)
 		case vr : VarRef => {
 		  val varDef = vr->definition
 		  //if we could resolve the definition, then it must
@@ -57,8 +58,12 @@ object ExpressionLanguageInterpreter extends Parser with Attributes with Optimiz
   
   def padToMargin(s : String) =  s.padTo(marginSize, " ").mkString
   
-  def prettyPrinted(program: Program) = pretty(product(program), marginSize) 
-  
+  def prettyPrinted(program: Program) = {
+    if (useCustomPrettyPrinter) pretty(toDoc(program), marginSize) 
+    else pretty(product(program), marginSize)
+  }
+    
+      
   def printProgramsSideBySide(original: Program, optimized: Program) {
     val originalArray = prettyPrinted(original).split("\\n")
     val optimizedArray = prettyPrinted(optimized).split("\\n")
