@@ -1,5 +1,6 @@
 package core
 import org.kiama.rewriting.Rewriter._
+import org.kiama.rewriting.Strategy
 import org.kiama.==>
 import ast._
 
@@ -12,14 +13,14 @@ trait Optimizer extends Attributes {
   /**
    * Turns -(-n) into n
    */
-  private val simplifyNeg = rule {
+  val simplifyNeg = rule {
     case Neg(Neg(x)) => x
   }
   
   /**
    * Turns addition of two same numbers into multiplication by 2
    */
-  private val addToMul = rule {
+  val addToMul = rule {
     case Add(x, y) if x == y => Mul(Num(2), x)
   }
   
@@ -28,7 +29,7 @@ trait Optimizer extends Attributes {
    * E.g., an expression 7 * 8 is gradually rewritten like this:
    * x * 8 => x << 1 * 4 =>  x << 2 * 2=> x << 3 * 1 << x << 3 
    */
-  private val mulToShiftRule = {
+  val mulToShiftRule = {
     
     def isPowerOf2(n : Int) : Boolean =
       (n % 2 == 0) && (n == 2 || isPowerOf2(n/2)) 
@@ -54,14 +55,14 @@ trait Optimizer extends Attributes {
   /**
    * Turn variable definitions not referenced in the program into Empty statements
    */
-  private val unusedVarDefsToEmpty = rule {
+  val unusedVarDefsToEmpty = rule {
     case varDef : VarDef if !(varDef->isReferenced) => Empty      
   }
   
   /**
    * Eliminate empty statements
    */
-  private val eliminateEmpties = rule {
+  val eliminateEmpties = rule {
     case Empty::xs => xs
   }
   
@@ -70,7 +71,7 @@ trait Optimizer extends Attributes {
    * All of the atomic strategies composing rewriteStrategies are disjoint, therefore
    * we use the '+' combinator which is a nondeteministic choice operator  
    */
-  private val rewriteStrategies = addToMul + mulToShiftRule + simplifyNeg + unusedVarDefsToEmpty + eliminateEmpties
+  val rewriteStrategies : Strategy = addToMul + mulToShiftRule + simplifyNeg + unusedVarDefsToEmpty + eliminateEmpties
   
   /**
    * Optimizes the program applying the specified rewrite strategies
@@ -80,5 +81,5 @@ trait Optimizer extends Attributes {
     //keep applying the rules until there is nothing to rewrite
     reduce(rewriteStrategies)
   } (program)
-
+  
 }

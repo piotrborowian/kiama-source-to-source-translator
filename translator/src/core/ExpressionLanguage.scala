@@ -7,10 +7,10 @@ import scala.util.parsing.combinator._
 import org.kiama.attribution.Attributable
 import org.kiama.attribution.Attribution._
 import org.kiama.output.PrettyPrinter
+import java.io.FileReader
 
-
-object ExpressionLanguageInterpreter extends Parser with Attributes with Optimizer with ELPrettyPrinter {
-  val marginSize = 45
+trait ExpressionLanguageInterpreter extends Parser with Attributes with Optimizer with ELPrettyPrinter {
+  val marginSize = 30
   val useCustomPrettyPrinter = true
   
   case class Runtime(program : Program) {
@@ -37,23 +37,25 @@ object ExpressionLanguageInterpreter extends Parser with Attributes with Optimiz
     }
     
   	/**
-  	 * Execute the given program
+  	 * Execute the given program and returns the output list
   	 */
-    def execute() = {
-      program.stms foreach {
-	    case exp : Exp => {
-	  	  println(eval(exp))
+    def execute() : List[Integer] = {
+      program.stms.foldLeft (List.empty[Integer]) {
+	    case (acc, exp : Exp) => {
+	  	  eval(exp)::acc
 	    }
-	    case Assign(varRef, exp) => {
+	    case (acc, Assign(varRef, exp)) => {
 	  	  val varDef = varRef->definition
 	  	  env = env + (varDef -> eval(exp))
+	  	  acc
 	    }
-	    case vd : VarDef => {
+	    case (acc, vd : VarDef) => {
 	      env = env + (vd -> 0)
+	      acc
 	    }
-	    case _ => 
+	    case (acc, _) => acc
       }
-    }
+    } reverse
   }
   
   def padToMargin(s : String) =  s.padTo(marginSize, " ").mkString
@@ -62,45 +64,52 @@ object ExpressionLanguageInterpreter extends Parser with Attributes with Optimiz
     if (useCustomPrettyPrinter) pretty(toDoc(program), marginSize) 
     else pretty(product(program), marginSize)
   }
-    
-      
-  def printProgramsSideBySide(original: Program, optimized: Program) {
-    val originalArray = prettyPrinted(original).split("\\n")
-    val optimizedArray = prettyPrinted(optimized).split("\\n")
-    val sizeDiff = originalArray.length - optimizedArray.length
+  
+  def printSideBySide(left : List[String], right : List[String]){
+    val sizeDiff = left.length - right.length
     
     val zipped = 
       if (sizeDiff > 0)
-        (originalArray zip (optimizedArray.toList ++ List.fill(sizeDiff)(" "))).toList
+        left zip (right.toList ++ List.fill(sizeDiff)(" "))
       else 
-        ((originalArray.toList ++ List.fill(-sizeDiff)(" ")) zip optimizedArray).toList
+        (left.toList ++ List.fill(-sizeDiff)(" ")) zip right
     
     val rows = for {
       (original, optimized) <- zipped
     } yield ( padToMargin(original) + optimized)
     
-    println(padToMargin("ORIGINAL:") + "OPTIMIZED:")
     rows foreach ( println(_))
   }
-  
-  def compareOriginalAndOptimized(original : Program) {
-    initTree(original)
-    val optimizedProgram = optimize(original)
-  	initTree(optimizedProgram)
-  	printProgramsSideBySide(original, optimizedProgram)
-  	  	 
-  	println(List.fill(marginSize*2)('-').mkString)
-  	println("ORIGINAL:")
-  	Runtime(original).execute()
-  	  	 
-  	println("\nOPTIMIZED:")
-  	Runtime(optimizedProgram).execute()
+      
+  def printSideBySide(original: Program, optimized: Program) {
+    val originalArray = prettyPrinted(original).split("\\n")
+    val optimizedArray = prettyPrinted(optimized).split("\\n")
+    printSideBySide(originalArray.toList, optimizedArray.toList)
   }
   
+  def printSideBySide(left : String, right : String) {
+    println(padToMargin(left) + right)
+  }
   
+  def compareOriginalAndOptimized(originalProgram : Program) {
+    initTree(originalProgram)
+    val optimizedProgram = optimize(originalProgram)
+  	initTree(optimizedProgram)
+  	printSideBySide("ORIGINAL:", "OPTIMIZED")
+  	printSideBySide(originalProgram, optimizedProgram)
+    println(List.fill(marginSize*2)('-').mkString)
+  	
+    val originalOutput = Runtime(originalProgram).execute()
+    val optimzedOutput = Runtime(optimizedProgram).execute()
+  	printSideBySide("OUTPUT:", "OUTPUT")
+    printSideBySide(originalOutput map (_.toString), optimzedOutput map (_.toString))
+  }
+}
+
+object InterpreterTest extends ExpressionLanguageInterpreter {  
   def main(args: Array[String]) {
      require(args.size == 1, "I've got nothing to execute. Please supply me with an *.el source file!")
-  	 val fileReader = new java.io.FileReader(args(0))
+  	 val fileReader = new FileReader(args(0))
      
 	 parse(fileReader) match {
   	   case Success(program, input)=> {

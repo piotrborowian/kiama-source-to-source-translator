@@ -27,7 +27,7 @@ trait Attributes {
           }).asInstanceOf[Option[VarDef]] 
       	}
       	
-      	// otherwise, just ask delegate to the parent
+      	// otherwise, just delegate to the parent
         case anyExp => {
           anyExp.parent[Stm]->variableLookup(varName)
         }

@@ -30,5 +30,5 @@ object ast {
   case class Program(stms: List[Stm]) extends AstNode
 
   //Internal nodes used for optimization
-  case object Empty extends AstNode
+  case object Empty extends Stm
 }

@@ -5,7 +5,7 @@ import org.kiama.output.ParenPrettyPrinter
 import core.ast._
 
 trait ELPrettyPrinter extends PrettyPrinter with ParenPrettyPrinter {
-   def toDoc (node : AstNode) : Doc = node match {
+   def toDoc(node : AstNode) : Doc = node match {
      case Program(stms) => ssep(stms map toDoc, ";" <> line )
      case Empty => empty
      case VarDef(name) => "var" <+> name 
@@ -18,5 +18,4 @@ trait ELPrettyPrinter extends PrettyPrinter with ParenPrettyPrinter {
      case VarRef(name) => name
      case e : Exp => super.toParenDoc(e)
    }
-
 }
