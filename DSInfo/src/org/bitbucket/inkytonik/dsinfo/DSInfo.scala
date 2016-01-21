@@ -1,8 +1,8 @@
 /**
  * This file is part of dsinfo.
  *
- * Copyright (C) 2013 Anthony M Sloane, Macquarie University.
- * Copyright (C) 2013 Matthew Roberts, Macquarie University.
+ * Copyright (C) 2013-2014 Anthony M Sloane, Macquarie University.
+ * Copyright (C) 2013-2014 Matthew Roberts, Macquarie University.
  *
  * dsname is free software: you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the
@@ -23,7 +23,7 @@ package org.bitbucket.inkytonik.dsinfo
 
 object DSInfo {
 
-    import scala.reflect.macros.Context
+    import scala.reflect.macros.blackbox.Context
 
     /**
      * The pattern that will be replaced by the macro name (`"\$macro"`).
@@ -48,7 +48,7 @@ object DSInfo {
      * method in the named object or package will be called. If it is qualified
      * and begins with `"this"`, then the method will be called on the same
      * object as the macro invocation.
-
+     *
      * Before the method specifier is interpreted, all occurrences of the
      * string `macroNamePat` are replaced by the name of the macro.
      *
@@ -59,31 +59,30 @@ object DSInfo {
         import c.{universe => u}
         import u._
 
-        import scala.reflect.NameTransformer.encode
+        import scala.reflect.NameTransformer.{encode, LOCAL_SUFFIX_STRING}
 
-        /**
+        /*
          * Helper function to do the real work once the macro name and arguments
          * have been determined. `obj` is the object to which the macro was
-         * applied. `macroArgs` is a list of the argument lists that were supplied
-         * to the macro call. `args` is the first argument list; the name is
-         * pre-pended to this list. `argsn` is the other argument lists. They are
-         * passed unchanged.
+         * applied. `macroName` is the name that was supplied in the call.
+         * `args1` is the first argument list; the name is pre-pended to this
+         * list. `argsn` is the other argument lists. They are passed unchanged.
          */
-        def constructCall[T] (obj : c.Tree, macroName : Name, args1 : List[c.Tree],
-                              argsn : List[List[c.Tree]]) : c.Expr[T] = {
+        def constructCall[U] (obj : c.Tree, macroName : Name, args1 : List[c.Tree],
+                              argsn : List[List[c.Tree]]) : c.Expr[U] = {
 
-            /**
+            /*
              * The string of the macro name.
              */
-            val macroNameStr = macroName.decoded
+            val macroNameStr = macroName.decodedName.toString
 
-            /**
+            /*
              * Is this tree this macro invocation?
              */
             def isThisInvocation (tree : c.Tree) : Boolean =
                 tree.pos == c.enclosingPosition
 
-            /**
+            /*
              * If the given tree is a value definition that has this macro
              * application on the right-hand side, return its name, otherwise be
              * undefined.
@@ -91,11 +90,11 @@ object DSInfo {
             val isThisVal : PartialFunction[c.Tree,String] = {
 
                 case d @ ValDef (_, name, _, rhs) if isThisInvocation (rhs) =>
-                    name.decoded
+                    name.decodedName.toString
 
             }
 
-            /**
+            /*
              * Try to find this invocation in a `val` in a list of trees. If found,
              * return `Some (name)` where `name` is the name of the `val`, otherwise
              * return `None`.
@@ -103,7 +102,7 @@ object DSInfo {
             def optFindValNameIn (body : List[c.Tree]) : Option[String] =
                 body.collectFirst (isThisVal)
 
-            /**
+            /*
              * Try to find this invocation in a `val` in a list of trees. If found,
              * return the name of the `val`, otherwise return the macro name.
              */
@@ -123,7 +122,7 @@ object DSInfo {
                     tree match {
 
                         case ValDef (_, valname, _, rhs) if isThisInvocation (rhs) =>
-                            optName = Some (valname.decoded)
+                            optName = Some (valname.decodedName.toString)
 
                         case _ =>
                             super.traverse (tree)
@@ -132,7 +131,7 @@ object DSInfo {
 
             }
 
-            /**
+            /*
              * Run a val def traverser on a list of trees and if a matching val def is found,
              * return the name of that def. Otherwise, return the macro name. The traversal
              * is breadth-first, so we will find the most common case of val defs at the top
@@ -144,63 +143,29 @@ object DSInfo {
                 traverser.optName.getOrElse (macroNameStr)
             }
 
-            /**
+            /*
+             * The suffix used internally in the Scala compiler for the names of
+             * lazy values. Doesn't appear in the public API at the moment but
+             * leaks out when we get the name of lazy owner.
+             */
+            val LAZY_SUFFIX_STRING = "$lzy"
+
+            /*
              * Find the name of the entity for which this macro application is
              * the right-hand side, or the macro name if one can't be found.
+             * For some reason some symbol names come with a space on the end
+             * of the name, and lazy values come with $lzy suffixes. If either
+             * are there, trim the unwanted suffix.
              */
-            def nameOfEnclosing : String =
-                c.enclosingMethod match {
+            def nameOfEnclosing : String = {
+                val str = c.internal.enclosingOwner.name.decodedName.toString
+                str.stripSuffix (LOCAL_SUFFIX_STRING).stripSuffix (LAZY_SUFFIX_STRING)
+            }
 
-                    // Macro invocation lies inside a definition of a lazy val of the form
-                    //   lazy def foo : ... = {
-                    //      foo$lzy = <macro invocation>
-                    //      foo$lzy
-                    //   }
-                    case d @ DefDef (_, defname, _, _, _, Block (List (Assign (_, exp)), _)) if isThisInvocation (exp) =>
-                        defname.decoded
-
-                    // Body of def is the macro invocation (non lazy)
-                    case d @ DefDef (_, defname, _, _, _, body) if isThisInvocation (body) =>
-                        defname.decoded
-
-                    // def has a block body
-                    case d @ DefDef (_, defname, _, _, _, Block (body, expr)) =>
-                        optFindValNameIn (body) match {
-                            // It's a val inside the def
-                            case Some (name) =>
-                                name
-                            // It's the value of the def's body
-                            case None if isThisInvocation (expr) =>
-                                defname.decoded
-                            case None =>
-                                macroNameStr
-                        }
-
-                    // Not a def def, look for a val def in anywhere in the enclosing template bodies
-                    case _ =>
-
-                        c.enclosingClass match {
-
-                            case ClassDef (_, _, _, Template (_, _, body)) =>
-                                getValDefNameInTrees (body)
-
-                            case ModuleDef (_, _, Template (_, _, body)) =>
-                                getValDefNameInTrees (body)
-
-                            case tree =>
-                                c.error (c.enclosingPosition,
-                                         s"makeCallWithName: unexpected context ${u.showRaw (tree)}")
-                                "dummy"
-
-                        }
-
-                }
-
-
-            /**
+            /*
              * Make the call, given a tree for the method.
              */
-            def makeCall[T] (method : c.Tree) : c.Expr[T] = {
+            def makeCall[V] (method : c.Tree) : c.Expr[V] = {
 
                 // The base expression: the method applied to the first argument list
                 // with the name pre-pended
@@ -215,7 +180,7 @@ object DSInfo {
                 // Hack to avoid Scala bug SI-6743. Set the position of the result tree
                 // to some position. This avoids a validation error if the -Yrangepos
                 // option is given.
-                c.Expr[T] (atPos (c.enclosingPosition) (result))
+                c.Expr[V] (atPos (c.enclosingPosition) (result))
 
             }
 
@@ -237,10 +202,10 @@ object DSInfo {
                         if (components.head == "this")
                             obj
                         else
-                            Ident (newTermName (encode (components.head)))
+                            Ident (TermName (encode (components.head)))
                     val method =
                         components.tail.foldLeft (head) {
-                            case (t, s) => Select (t, newTermName (encode (s)))
+                            case (t, s) => Select (t, TermName (encode (s)))
                         }
 
                     // println (s"method = $method")
@@ -278,6 +243,14 @@ object DSInfo {
             case Apply (Apply (Select (obj, macroName), args1), args2) =>
                 constructCall (obj, macroName, args1, List (args2))
 
+            // Three argument lists
+            case Apply (Apply (Apply (Select (obj, macroName), args1), args2), args3) =>
+                constructCall (obj, macroName, args1, List (args2, args3))
+
+            // Four argument lists
+            case Apply (Apply (Apply (Apply (Select (obj, macroName), args1), args2), args3), args4) =>
+                constructCall (obj, macroName, args1, List (args2, args3, args4))
+
             // One argument list + type application
             case Apply (TypeApply (Select (obj, macroName), _), args1) =>
                 constructCall (obj, macroName, args1, Nil)
@@ -285,6 +258,14 @@ object DSInfo {
             // Two arguments list + type application
             case Apply (Apply (TypeApply (Select (obj, macroName), _), args1), args2) =>
                 constructCall (obj, macroName, args1, List (args2))
+
+            // Three argument lists + type application
+            case Apply (Apply (Apply (TypeApply (Select (obj, macroName), _), args1), args2), args3) =>
+                constructCall (obj, macroName, args1, List (args2, args3))
+
+            // Four argument lists + type application
+            case Apply (Apply (Apply (Apply (TypeApply (Select (obj, macroName), _), args1), args2), args3), args4) =>
+                constructCall (obj, macroName, args1, List (args2, args3, args4))
 
             case t =>
                 c.error (c.enclosingPosition,

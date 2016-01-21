@@ -13,14 +13,14 @@ trait Optimizer extends Attributes {
   /**
    * Turns -(-n) into n
    */
-  val simplifyNeg = rule {
+  val simplifyNeg = rule[Exp] {
     case Neg(Neg(x)) => x
   }
   
   /**
    * Turns addition of two same numbers into multiplication by 2
    */
-  val addToMul = rule {
+  val addToMul = rule[Exp] {
     case Add(x, y) if x == y => Mul(Num(2), x)
   }
   
@@ -55,14 +55,14 @@ trait Optimizer extends Attributes {
   /**
    * Turn variable definitions not referenced in the program into Empty statements
    */
-  val unusedVarDefsToEmpty = rule {
-    case varDef : VarDef if !(varDef->isReferenced) => Empty      
+  val unusedVarDefsToEmpty = rule[AstNode] {
+    case varDef : VarDef if !(varDef->isReferenced) => Empty    
   }
   
   /**
    * Eliminate empty statements
    */
-  val eliminateEmpties = rule {
+  val eliminateEmpties = rule[Seq[AstNode]]{
     case Empty::xs => xs
   }
   

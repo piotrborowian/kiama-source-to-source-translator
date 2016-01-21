@@ -1,8 +1,8 @@
 /**
  * This file is part of dsinfo.
  *
- * Copyright (C) 2013 Anthony M Sloane, Macquarie University.
- * Copyright (C) 2013 Matthew Roberts, Macquarie University.
+ * Copyright (C) 2013-2014 Anthony M Sloane, Macquarie University.
+ * Copyright (C) 2013-2014 Matthew Roberts, Macquarie University.
  *
  * dsname is free software: you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the
@@ -26,7 +26,7 @@ case class NoArgs (name : String)
 object NoArgsMaker {
 
     import scala.language.experimental.macros
-    import scala.reflect.macros.Context
+    import scala.reflect.macros.blackbox.Context
     import DSInfo.makeCallWithName
 
     def noargs () : NoArgs =

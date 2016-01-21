@@ -3,11 +3,15 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
-	<classpathentry kind="lib" path="lib/kiama_2.10-1.5.1-javadoc.jar"/>
-	<classpathentry kind="lib" path="lib/kiama_2.10-1.5.1-sources.jar"/>
-	<classpathentry kind="lib" path="lib/kiama_2.10-1.5.1.jar" sourcepath="lib/kiama_2.10-1.5.1-sources.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/DSInfo"/>
 	<classpathentry kind="lib" path="lib/junit-4.10.jar"/>
-	<classpathentry kind="lib" path="lib/scalatest_2.10-1.9.1.jar"/>
+	<classpathentry kind="lib" path="lib/scala-parser-combinators_2.11-1.0.4-javadoc.jar"/>
+	<classpathentry kind="lib" path="lib/scala-parser-combinators_2.11-1.0.4-sources.jar"/>
+	<classpathentry kind="lib" path="lib/scala-parser-combinators_2.11-1.0.4.jar"/>
+	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/core"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/library"/>
+	<classpathentry kind="lib" path="D:/Users/piotrborowian/.ivy2/cache/org.scalatest/scalatest_2.11/bundles/scalatest_2.11-2.2.0.jar"/>
+	<classpathentry kind="lib" path="D:/Users/piotrborowian/.ivy2/cache/org.bitbucket.inkytonik.dsinfo/dsinfo_2.11/jars/dsinfo_2.11-0.4.0.jar"/>
+	<classpathentry kind="lib" path="D:/Users/piotrborowian/.ivy2/cache/org.bitbucket.inkytonik.dsprofile/dsprofile_2.11/jars/dsprofile_2.11-0.4.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

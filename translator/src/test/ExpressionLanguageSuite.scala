@@ -24,8 +24,8 @@ class ExpressionLanguageSuite extends FunSuite with ExpressionLanguageInterprete
     case x::xs => {
       val childSubsets = allSubsets(xs)
       for {
-    	subSet <- childSubsets
-    	i <- 0 until 2
+      	subSet <- childSubsets
+      	i <- 0 until 2
       }	yield {
         if (i == 0) subSet
         else x::subSet

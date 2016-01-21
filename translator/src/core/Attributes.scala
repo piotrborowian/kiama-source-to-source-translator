@@ -42,10 +42,10 @@ trait Attributes {
   val definition: VarRef => VarDef = 
     attr { //Kiama attribute, will be cached after computed for the first time
 	  varRef => {
-		(varRef->variableLookup(varRef.name)) getOrElse {
-		  val varName = varRef.name
-		  throw new RuntimeException( s"Reference to an undifined variable $varName")
-	    }	
+  		(varRef->variableLookup(varRef.name)) getOrElse {
+  		  val varName = varRef.name
+  		  throw new RuntimeException( s"Reference to an undifined variable $varName")
+  	    }	
       }
     }
   
@@ -55,7 +55,7 @@ trait Attributes {
    */
   private val enclosingProgram : AstNode => Program = {
     //propagate the attribute to all children of Program
-    down[AstNode, Program] { 
+    downErr[AstNode, Program] {
       case program : Program => program
     }
   }
@@ -65,11 +65,11 @@ trait Attributes {
    * all the variable names referenced in it
    */
   private val variableReferences : Program => Set[String] = 
-    attr {
-	  program => {
-	    val variableReferences = mutable.Set.empty[String]
+    attr[Program, Set[String]] {
+	    program : Program => {
+	      val variableReferences = mutable.Set.empty[String]
         everywheretd ( 
-          query {
+          query[AstNode] {
             case VarRef(name) => variableReferences += name
           }
         ) (program)
@@ -83,11 +83,11 @@ trait Attributes {
    */
   val isReferenced : VarDef => Boolean =
     attr {
-	  varDef => {
-	    val program = varDef->enclosingProgram
-	    val varReferences = program->variableReferences
-	    varReferences.contains(varDef.name)
-	  }
+  	  varDef => {
+  	    val program = varDef->enclosingProgram
+  	    val varReferences = program->variableReferences
+  	    varReferences.contains(varDef.name)
+  	  }
   	}
   
 }

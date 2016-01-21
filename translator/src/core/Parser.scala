@@ -8,10 +8,10 @@ import ast._
  */
 trait Parser extends JavaTokenParsers {
     
-    /**
-     * Returns a ParseResult of the parsed Program
-     */
-    def parse(input : java.io.FileReader) : ParseResult[Program] = parseAll(program, input)
+  /**
+   * Returns a ParseResult of the parsed Program
+   */
+  def parse(input : java.io.FileReader) : ParseResult[Program] = parseAll(program, input)
       
 	private def program = rep((assign | varDef | exp) <~ ";") ^^ {
 	  stms => Program(stms)
